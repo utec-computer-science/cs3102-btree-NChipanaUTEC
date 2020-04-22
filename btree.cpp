@@ -11,7 +11,10 @@ public:
   class simple_search{
   public:
     int operator() (container_t a, value_t v){
-      return 0;
+      for(int i = 0; i < a.size(); i++){
+        if(a[i] == v){return i;}
+      }
+      return -1;
     }
   };
 
@@ -102,10 +105,17 @@ public:
     return true;
   }
 
-  void pushBack(value_t val){
+  void pushBack(value_t val,BNode<T,S>* pointer){
     keys.insert(keys.begin(),val);
+    ptrs.insert(ptrs.begin(),pointer);
     if(*(keys.end()-1)==-1){keys.erase(keys.end()-1);}
+    if(*(ptrs.end()) == NULL){ptrs.erase(ptrs.end()-1);}
     currentNodes++;
+  }
+
+  void pushPointer(BNode<T,S>* pointer){
+    ptrs.insert(ptrs.begin(),pointer);
+    if(*(ptrs.end()) == NULL){ptrs.erase(ptrs.end()-1);}
   }
 
   void insertAt(value_t index, value_t val){
@@ -114,21 +124,29 @@ public:
     currentNodes++;
   }
 
-  void splitNode(){
+  void splitNode(bool fullPointers = false){
     value_t val = keys[S/2-1];
     BNode<T,S>* leftNode = new BNode<T,S>;
     BNode<T,S>* rightNode = new BNode<T,S>;
-    for(iterator_t it = keys.end(); it!= keys.begin();it--){
-      if(*it<val){
-        leftNode->pushBack(*it);
-        *it = -1;
+    if(fullPointers)
+      rightNode->pushPointer(ptrs[S]);
+    for(int i = keys.size()-1; i >= 0; i--){
+      if(keys[i]<val){
+        leftNode->pushBack(keys[i],ptrs[i]);
+        keys[i] = -1;
         currentNodes--;
       }
-      else if(*it>val){
-        rightNode->pushBack(*it);
-        *it = -1;
+      else if(keys[i]>val){
+        rightNode->pushBack(keys[i],ptrs[i]);
+        keys[i] = -1;
         currentNodes--;
       }
+      else{
+        if(fullPointers){leftNode->pushPointer(ptrs[i]);}
+      }
+    }
+    for(int i = 2; i < ptrs.size(); i++){
+      ptrs[i] = NULL;
     }
     keys[0] = keys[S/2-1];
     keys[S/2-1] = -1;
@@ -185,18 +203,24 @@ public:
       for(int i = 0; i < temp->ptrs.size();i++){
         if(temp->ptrs[i] == moveNode){
           temp->ptrs[i] = moveNode->ptrs[0];
-          temp->keys[i] = moveNode->keys[0];
+          temp->keys[i] = val;
           temp->ptrs[i+1] = moveNode->ptrs[1];
+          delete moveNode;
+          temp->currentNodes++;
           organized = true;
-          return;
+          break;
         }
       }
+      if(organized)break;
       for(int i = 0; i < temp->ptrs.size();i++){
         if(temp->ptrs[i] != NULL && (val <= temp->keys[i] || temp->keys[i]==-1)){
           temp = temp->ptrs[i];
           break;
         }
       }
+    }
+    if(temp->currentNodes==S){
+      temp->splitNode(true);
     }
   }
 
@@ -233,7 +257,22 @@ public:
   }
 
   bool find(const value_t& val = 0){
-
+    BNode<T,S>* temp = root;
+    functor_t bs;
+    while(true){
+      if(bs(temp->keys,val) != -1){
+        return true;
+      }
+      else{
+        if(temp->isLeaf())return false;
+        for(int i = 0; i < temp->ptrs.size();i++){
+          if(temp->ptrs[i]!=NULL && (temp->keys[i]>=val||temp->keys[i]==-1)){
+            temp = temp->ptrs[i];
+            break;
+          }
+        }
+      }
+    }
   }
 
   template <typename _T, int _S>
@@ -247,7 +286,8 @@ public:
 
 int main() {
   typedef BS_Traits<int> btrait_t;
-  BTree<btrait_t,4> tree;
+  typedef SS_Traits<int> strait_t;
+  BTree<strait_t,4> tree;
   tree.insert(1);
   tree.insert(2);
   tree.insert(3);
@@ -256,8 +296,10 @@ int main() {
   tree.insert(6);
   tree.insert(7);
   tree.insert(8);
+  tree.insert(9);
+  tree.insert(10);
+  std::cout <<"Encontro 5: " <<tree.find(5)<<"\n";
   /*
-  std::cout <<"Encontro: " <<tree.find(5)<<"\n";
   std::cout<<tree<< std::endl;
   typedef SS_Traits<float> strait_t;
   BTree<strait_t,10> stree;
