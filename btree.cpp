@@ -1,73 +1,7 @@
 #include <iostream>
 #include <vector>
-
-template <typename T>
-class SS_Traits{
-public:
-  typedef T  value_t;
-  typedef std::vector<value_t> container_t;
-  typedef typename container_t::iterator iterator_t;
-
-  class simple_search{
-  public:
-    int operator() (container_t a, value_t v){
-      for(int i = 0; i < a.size(); i++){
-        if(a[i] == v){return i;}
-      }
-      return -1;
-    }
-  };
-
-  class post_order_print{
-  public:
-    void operator() (void){
-      std::cout << "post order" << std::endl;
-    }
-  };
-
-  typedef simple_search functor_t;
-  typedef post_order_print print_t;
-};
-
-template <typename T>
-class BS_Traits{
-public:
-  typedef T  value_t;
-  typedef std::vector<value_t> container_t;
-  typedef typename container_t::iterator iterator_t;
-
-  class binary_search{
-  public:
-    int operator() (container_t a, value_t v){
-      int left = 0;
-      int right = a.size()-1;
-      int pivot;
-      while(left <= right){
-        pivot = left + (right-left)/2;
-        if(a[pivot]==v){
-          return pivot;
-        }
-        else if(a[pivot] < v){
-          left = pivot + 1;
-        }
-        else{
-          right = pivot - 1;
-        }
-      }
-      return -1;
-    }
-  };
-
-  class pre_order_print{
-  public:
-    void operator() (void){
-      std::cout << "pre order" << std::endl;
-    }
-  };
-
-  typedef binary_search functor_t;
-  typedef pre_order_print print_t;
-};
+#include <type_traits>
+#include <cstdint>
 
 template <typename T, int S>
 class BNode {
@@ -158,6 +92,82 @@ public:
   ~BNode(void){}
 };
 
+template <typename T>
+class SS_Traits{
+public:
+  typedef T  value_t;
+  typedef std::vector<value_t> container_t;
+  typedef typename container_t::iterator iterator_t;
+
+  class simple_search{
+  public:
+    int operator() (container_t a, value_t v){
+      for(int i = 0; i < a.size(); i++){
+        if(a[i] == v){return i;}
+      }
+      return -1;
+    }
+  };
+
+  class post_order_print{
+  public:
+    void operator() (container_t keys){
+      for(auto it: keys){
+        if(it!=-1)
+          std::cout<<it<<" ";
+      }
+      std::cout<<"\n";
+    }
+  };
+
+  typedef simple_search functor_t;
+  typedef post_order_print print_t;
+};
+
+template <typename T>
+class BS_Traits{
+public:
+  typedef T  value_t;
+  typedef std::vector<value_t> container_t;
+  typedef typename container_t::iterator iterator_t;
+
+  class binary_search{
+  public:
+    int operator() (container_t a, value_t v){
+      int left = 0;
+      int right = a.size()-1;
+      int pivot;
+      while(left <= right){
+        pivot = left + (right-left)/2;
+        if(a[pivot]==v){
+          return pivot;
+        }
+        else if(a[pivot] < v){
+          left = pivot + 1;
+        }
+        else{
+          right = pivot - 1;
+        }
+      }
+      return -1;
+    }
+  };
+
+  class pre_order_print{
+  public:
+    void operator() (container_t keys){
+      for(auto it: keys){
+        if(it!=-1)
+          std::cout<<it<<" ";
+      }
+      std::cout<<"\n";
+    }
+  };
+
+  typedef binary_search functor_t;
+  typedef pre_order_print print_t;
+};
+
 template <typename T, int S>
 class BTree {
 public:
@@ -174,6 +184,24 @@ public:
   }
 
   ~BTree(void){}
+
+  void prePrint(BNode<T,S>* current){
+    if(current){
+      print(current->keys);
+      for(auto it:current->ptrs){
+        prePrint(it);
+      }
+    }
+  }
+
+  void postPrint(BNode<T,S>* current){
+    if(current){
+      for(auto it:current->ptrs){
+        postPrint(it);
+      }
+      print(current->keys);
+    }
+  }
 
   void insertNotFull(BNode<T,S>*temp, const value_t& val = 0){
     for(int i = 0; i < temp->keys.size(); i++){
@@ -248,12 +276,6 @@ public:
     }
 
 
-
-    for(int j = 0; j < root->keys.size(); j++){
-      if(root->keys[j]!=-1)
-        std::cout<<root->keys[j]<<" ";
-    }
-    std::cout<<"\n";
   }
 
   bool find(const value_t& val = 0){
@@ -277,8 +299,8 @@ public:
 
   template <typename _T, int _S>
   friend std::ostream& operator<<(std::ostream& out, BTree<_T,_S> tree){
-    tree.print();// (out)
-    // IN PRE POST LEVEL ORDER
+    tree.prePrint(tree.root);
+    // postPrint(tree.root);
     return out;
   }
 
@@ -299,9 +321,5 @@ int main() {
   tree.insert(9);
   tree.insert(10);
   std::cout <<"Encontro 5: " <<tree.find(5)<<"\n";
-  /*
   std::cout<<tree<< std::endl;
-  typedef SS_Traits<float> strait_t;
-  BTree<strait_t,10> stree;
-  std::cout<<stree<< std::endl;*/
 }
