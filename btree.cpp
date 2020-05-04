@@ -111,12 +111,15 @@ public:
 
   class post_order_print{
   public:
-    void operator() (container_t keys){
+    void operator() (container_t keys, int size){
       for(auto it: keys){
-        if(it!=-1)
-          std::cout<<it<<" ";
+        if(it!=-1){
+          for(int i = 0; i < size; i++){
+            std::cout << "\t";
+          }
+          std::cout<<it<<"\n";
+        }
       }
-      std::cout<<"\n";
     }
   };
 
@@ -155,12 +158,15 @@ public:
 
   class pre_order_print{
   public:
-    void operator() (container_t keys){
+    void operator() (container_t keys, int size){
       for(auto it: keys){
-        if(it!=-1)
-          std::cout<<it<<" ";
+        if(it!=-1){
+          for(int i = 0; i < size; i++){
+            std::cout << "\t";
+          }
+          std::cout<<it<<"\n";
+        }
       }
-      std::cout<<"\n";
     }
   };
 
@@ -185,21 +191,18 @@ public:
 
   ~BTree(void){}
 
-  void prePrint(BNode<T,S>* current){
-    if(current){
-      print(current->keys);
-      for(auto it:current->ptrs){
-        prePrint(it);
-      }
-    }
-  }
 
-  void postPrint(BNode<T,S>* current){
+  void recursivePrint(BNode<T,S>* current, int size){
     if(current){
-      for(auto it:current->ptrs){
-        postPrint(it);
+      for(int i = current->ptrs.size()-1; i >= 0;i--){
+        if(current->keys[i]!=-1){
+          for(int j = 0; j < size; j++){
+            std::cout<<"\t";
+          }
+          std::cout<<current->keys[i]<<"\n";
+        }
+        recursivePrint(current->ptrs[i],size+1);
       }
-      print(current->keys);
     }
   }
 
@@ -227,8 +230,9 @@ public:
     if(temp == moveNode){return;}
     value_t val = moveNode->keys[0];
     bool organized = false;
+    int i;
     while(!organized){
-      for(int i = 0; i < temp->ptrs.size();i++){
+      for(i = 0; i < temp->ptrs.size();i++){
         if(temp->ptrs[i] == moveNode){
           temp->ptrs[i] = moveNode->ptrs[0];
           temp->keys[i] = val;
@@ -239,16 +243,19 @@ public:
           break;
         }
       }
-      if(organized)break;
+      if(organized){
+        if(temp->currentNodes==S){
+          temp->splitNode(true);
+          reorganize(temp);
+        }
+        return;
+      }
       for(int i = 0; i < temp->ptrs.size();i++){
         if(temp->ptrs[i] != NULL && (val <= temp->keys[i] || temp->keys[i]==-1)){
           temp = temp->ptrs[i];
           break;
         }
       }
-    }
-    if(temp->currentNodes==S){
-      temp->splitNode(true);
     }
   }
 
@@ -299,7 +306,7 @@ public:
 
   template <typename _T, int _S>
   friend std::ostream& operator<<(std::ostream& out, BTree<_T,_S> tree){
-    tree.prePrint(tree.root);
+    tree.recursivePrint(tree.root,0);
     // postPrint(tree.root);
     return out;
   }
@@ -310,16 +317,9 @@ int main() {
   typedef BS_Traits<int> btrait_t;
   typedef SS_Traits<int> strait_t;
   BTree<strait_t,4> tree;
-  tree.insert(1);
-  tree.insert(2);
-  tree.insert(3);
-  tree.insert(4);
-  tree.insert(5);
-  tree.insert(6);
-  tree.insert(7);
-  tree.insert(8);
-  tree.insert(9);
-  tree.insert(10);
+  for(int i = 1; i <= 50; i ++){
+    tree.insert(i);
+  }
   std::cout <<"Encontro 5: " <<tree.find(5)<<"\n";
   std::cout<<tree<< std::endl;
 }
