@@ -58,6 +58,22 @@ public:
     currentNodes++;
   }
 
+  BNode<T,S>* getNextChild(const value_t& val = 0){
+    for(int i = 0; i < ptrs.size();i++){
+      if(ptrs[i] != NULL && (val <= keys[i] || keys[i]==-1)){
+        return ptrs[i];
+      }
+    }
+  }
+
+  BNode<T,S>* getNextLeaf(const value_t& val = 0){
+    BNode<T,S>* child = this;
+    while(!child->isLeaf()){
+      child = child->getNextChild(val);
+    }
+    return child;
+  }
+
   void splitNode(bool fullPointers = false){
     value_t val = keys[S/2-1];
     BNode<T,S>* leftNode = new BNode<T,S>;
@@ -87,6 +103,77 @@ public:
 
     ptrs[0] = leftNode;
     ptrs[1] = rightNode;
+  }
+
+  void insertFull(const value_t& val = 0){
+    for(int i = 0; i < keys.size(); i++){
+      if(val <= keys[i] || keys[i] == -1){
+        insertAt(i,val);
+        splitNode();
+        break;
+      }
+    }
+  }
+
+  void insertNotFull(const value_t& val = 0){
+    for(int i = 0; i < keys.size(); i++){
+      if(val <= keys[i] || keys[i] == -1){
+        insertAt(i,val);
+        break;
+      }
+    }
+  }
+
+  void reorganize(BNode<T,S>* root){
+    BNode<T,S>* temp = root;
+    if(temp == this){return;}
+    value_t val = keys[0];
+    bool organized = false;
+    int i;
+    while(!organized){
+      for(i = 0; i < temp->ptrs.size();i++){
+        if(temp->ptrs[i] == this){
+          temp->ptrs[i] = ptrs[0];
+          temp->keys[i] = val;
+          temp->ptrs[i+1] = ptrs[1];
+          delete this;
+          temp->currentNodes++;
+          organized = true;
+          break;
+        }
+      }
+      if(organized){
+        if(temp->currentNodes==S){
+          temp->splitNode(true);
+          temp->reorganize(root);
+        }
+        return;
+      }
+      for(int i = 0; i < temp->ptrs.size();i++){
+        if(temp->ptrs[i] != NULL && (val <= temp->keys[i] || temp->keys[i]==-1)){
+          temp = temp->ptrs[i];
+          break;
+        }
+      }
+    }
+  }
+
+  void recursionPrint(BNode<T,S>* current,int size){
+    if(current){
+      for(int i = current->ptrs.size()-1; i >= 0;i--){
+        if(current->keys[i]!=-1){
+          for(int j = 0; j < size; j++){
+            std::cout<<"\t";
+          }
+          std::cout<<current->keys[i]<<"\n";
+        }
+        recursionPrint(current->ptrs[i],size+1);
+      }
+    }
+  }
+
+  void nodePrint(){
+    recursionPrint(this,0);
   }
 
   ~BNode(void){}
@@ -183,7 +270,7 @@ public:
   typedef typename T::print_t print_t;
 
   BNode<T,S>* root;
-  print_t print;
+  //print_t print;
   functor_t search;
 
   BTree(void):root(NULL){
@@ -192,96 +279,26 @@ public:
   ~BTree(void){}
 
 
-  void recursivePrint(BNode<T,S>* current, int size){
-    if(current){
-      for(int i = current->ptrs.size()-1; i >= 0;i--){
-        if(current->keys[i]!=-1){
-          for(int j = 0; j < size; j++){
-            std::cout<<"\t";
-          }
-          std::cout<<current->keys[i]<<"\n";
-        }
-        recursivePrint(current->ptrs[i],size+1);
-      }
-    }
-  }
-
-  void insertNotFull(BNode<T,S>*temp, const value_t& val = 0){
-    for(int i = 0; i < temp->keys.size(); i++){
-      if(val <= temp->keys[i] || temp->keys[i] == -1){
-        temp->insertAt(i,val);
-        break;
-      }
-    }
-  }
-
-  void insertFull(BNode<T,S>*temp, const value_t& val = 0){
-    for(int i = 0; i < temp->keys.size(); i++){
-      if(val <= temp->keys[i] || temp->keys[i] == -1){
-        temp->insertAt(i,val);
-        temp->splitNode();
-        break;
-      }
-    }
-  }
-
-  void reorganize(BNode<T,S>* moveNode){
-    BNode<T,S>* temp = root;
-    if(temp == moveNode){return;}
-    value_t val = moveNode->keys[0];
-    bool organized = false;
-    int i;
-    while(!organized){
-      for(i = 0; i < temp->ptrs.size();i++){
-        if(temp->ptrs[i] == moveNode){
-          temp->ptrs[i] = moveNode->ptrs[0];
-          temp->keys[i] = val;
-          temp->ptrs[i+1] = moveNode->ptrs[1];
-          delete moveNode;
-          temp->currentNodes++;
-          organized = true;
-          break;
-        }
-      }
-      if(organized){
-        if(temp->currentNodes==S){
-          temp->splitNode(true);
-          reorganize(temp);
-        }
-        return;
-      }
-      for(int i = 0; i < temp->ptrs.size();i++){
-        if(temp->ptrs[i] != NULL && (val <= temp->keys[i] || temp->keys[i]==-1)){
-          temp = temp->ptrs[i];
-          break;
-        }
-      }
-    }
+  void print(BNode<T,S>* current){
+    current->nodePrint();
   }
 
 
   void insert(const value_t& val = 0){
-    if(root == NULL){root = new BNode<T,S>;}
-
-    BNode<T,S>* temp = root;
-
-    while(!temp->isLeaf()){
-      for(int i = 0; i < temp->ptrs.size();i++){
-        if(temp->ptrs[i] != NULL && (val <= temp->keys[i] || temp->keys[i]==-1)){
-          temp = temp->ptrs[i];
-          break;
-        }
-      }
+    if(root == NULL){
+      root = new BNode<T,S>;
     }
+    BNode<T,S>* head = root;
 
-    if(temp->isFull()){
-      insertFull(temp,val);
-      reorganize(temp);
+    head = head->getNextLeaf(val);
+
+    if(head->isFull()){
+      head->insertFull(val);
+      head->reorganize(root);
     }
     else{
-      insertNotFull(temp,val);
+      head->insertNotFull(val);
     }
-
 
   }
 
@@ -294,19 +311,14 @@ public:
       }
       else{
         if(temp->isLeaf())return false;
-        for(int i = 0; i < temp->ptrs.size();i++){
-          if(temp->ptrs[i]!=NULL && (temp->keys[i]>=val||temp->keys[i]==-1)){
-            temp = temp->ptrs[i];
-            break;
-          }
-        }
+        temp = temp->getNextChild(val);
       }
     }
   }
 
   template <typename _T, int _S>
   friend std::ostream& operator<<(std::ostream& out, BTree<_T,_S> tree){
-    tree.recursivePrint(tree.root,0);
+    tree.print(tree.root);
     // postPrint(tree.root);
     return out;
   }
@@ -317,9 +329,9 @@ int main() {
   typedef BS_Traits<int> btrait_t;
   typedef SS_Traits<int> strait_t;
   BTree<strait_t,4> tree;
-  for(int i = 1; i <= 50; i ++){
+  for(int i = 1; i <= 100; i ++){
     tree.insert(i);
   }
-  std::cout <<"Encontro 5: " <<tree.find(5)<<"\n";
+  std::cout <<"Encontro 48: " <<tree.find(48)<<"\n";
   std::cout<<tree<< std::endl;
 }
